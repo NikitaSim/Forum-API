@@ -1,0 +1,12 @@
+services:
+  postgres:
+    image: postgres:18.3
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+    container_name: 'postgresql-container'
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # начальная схема БД
+    ports:
+      - 5433:5432

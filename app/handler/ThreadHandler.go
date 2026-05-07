@@ -21,7 +21,7 @@ func CreateThreads(c *gin.Context) {
 		})
 		return
 	}
-	if userID == "" {
+	if idempotencyKey == "" {
 		c.JSON(401, gin.H{
 			"code":    "unauthorized",
 			"message": "missing idempotency key",
@@ -97,4 +97,26 @@ func ShowThreads(c *gin.Context) {
 			"total":  total,
 		},
 	})
+}
+
+func GetThread(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    http.StatusBadRequest,
+			"message": "Wrong id",
+		})
+		return
+	}
+
+	thread, err := service.GetThreadById(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    http.StatusInternalServerError,
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, thread)
 }

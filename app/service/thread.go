@@ -210,3 +210,30 @@ func GetThreads(param models.Parameters) ([]models.Thread, int, error) {
 
 	return nil, 0, fmt.Errorf("Wrong parameters")
 }
+
+func GetThreadById(id int) (models.Thread, error) {
+	ctx := context.Background()
+	conn, err := pgxpool.New(ctx, models.PostgresqlConnString)
+	if err != nil {
+		return models.Thread{}, fmt.Errorf("Connection error %s", err)
+	}
+
+	tags := make([]string, 0)
+	var thread models.Thread
+	if err := conn.QueryRow(ctx, `SELECT threads.id,
+			threads.author_id,
+			threads.title,
+			threads.content,
+			threads.is_locked,
+			threads.created_at,
+			threads.updated_at,
+			array_agg(thread_tags.tag) as tags
+			FROM threads LEFT JOIN thread_tags ON threads.id = thread_tags.thread_id
+			WHERE threads.id = $1
+			GROUP BY threads.id`,
+		id).Scan(&thread.Id, &thread.AuthorID, &thread.Title, &thread.Content, &thread.IsLocked, &thread.CreatedAt, &thread.UpdatedAt, &tags); err != nil {
+		return models.Thread{}, err
+	}
+
+	return thread, nil
+}

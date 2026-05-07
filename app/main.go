@@ -24,11 +24,16 @@ func main() {
 		})
 	})
 
+	router.Use(gin.Recovery())
+	router.Use(gin.Logger())
+
 	router.GET("/internal/v1/health", handler.Health)
 	router.GET("/internal/v1/Truncate", handler.Truncate)
 	router.POST("/api/v1/auth/login", handler.LoginMiddleware(), handler.Login)
 	router.POST("/api/v1/threads", handler.CreateThreads)
 	router.GET("/api/v1/threads", handler.ShowThreads)
+	router.GET("/api/v1/threads/:id", handler.GetThread)
+	router.POST("/api/v1/threads/:id/posts", handler.CreatePosts)
 
 	server := &http.Server{
 		Addr:         ":8080",

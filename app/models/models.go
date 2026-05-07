@@ -36,3 +36,17 @@ type Parameters struct {
 	Tag    string
 	Author string
 }
+
+type Contents struct {
+	Content string `json:"content"`
+}
+
+type Post struct {
+	Id       int
+	AuthorID string
+	ThreadID int
+	Content  string `json:"content"`
+
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+}

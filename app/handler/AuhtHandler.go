@@ -28,8 +28,8 @@ func Login(c *gin.Context) {
 func LoginMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var user models.Users
-		tmpl := regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
-		if err := c.ShouldBind(&user); err != nil || !tmpl.MatchString(user.Name) { // добавить regexp
+		tmp := regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+		if err := c.ShouldBind(&user); err != nil || !tmp.MatchString(user.Name) { // добавить regexp
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"code":    http.StatusBadRequest,
 				"message": "Incorrect data",

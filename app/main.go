@@ -33,7 +33,13 @@ func main() {
 	router.POST("/api/v1/threads", handler.CreateThreads)
 	router.GET("/api/v1/threads", handler.ShowThreads)
 	router.GET("/api/v1/threads/:id", handler.GetThread)
+	router.DELETE("/api/v1/threads/:id", handler.DeleteThread)
 	router.POST("/api/v1/threads/:id/posts", handler.CreatePosts)
+	router.GET("/api/v1/threads/:id/posts", handler.GetPosts)
+	router.PATCH("/api/v1/threads/:id/lock", handler.LockThread)
+	router.PATCH("/api/v1/threads/:id", handler.PatchThread)
+	router.DELETE("/api/v1/posts/:id", handler.DeletePost)
+	router.PATCH("/api/v1/posts/:id", handler.PatchPost)
 
 	server := &http.Server{
 		Addr:         ":8080",

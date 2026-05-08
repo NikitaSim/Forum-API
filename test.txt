@@ -2,11 +2,19 @@ curl -X POST -H "Content-Type: application/x-www-form-urlencoded" -d "username=a
 curl -X POST -H "Content-Type: application/x-www-form-urlencoded" -d "username=nikita&password=supeet123" http://localhost:8080/api/v1/auth/login
 curl -X POST -H "Content-Type: application/x-www-form-urlencoded" -d "username=abrsrgs&password=supersecret123" http://localhost:8080/api/v1/auth/login
 
-curl -X POST -H "Content-Type: application/json" -H "X-User-Id: f0bf9cc8-f021-4706-8615-432187eeaf4a" -H "X-Idempotency-Key: key-123" -d "{\"title\": \"first thread\",\"content\": \"hello world\",\"tags\": [\"go\", \"test\", \"sql\"]}" http://localhost:8080/api/v1/threads
-curl -X POST -H "Content-Type: application/json" -H "X-User-Id: 175246fc-7c19-43a5-bb68-34a1abf84dae" -H "X-Idempotency-Key: key-12" -d "{\"title\": \"second thread\",\"content\": \" world\",\"tags\": [\"pythone\", \"test\"]}" http://localhost:8080/api/v1/threads
-curl -X POST -H "Content-Type: application/json" -H "X-User-Id: a0698313-4dd6-4784-bb46-424e789ec079" -H "X-Idempotency-Key: key-13" -d "{\"title\": \"third thread\",\"content\": \"hello \",\"tags\": [\"go\", \"test\"]}" http://localhost:8080/api/v1/threads
-curl -X POST -H "Content-Type: application/json" -H "X-User-Id: a0698313-4dd6-4784-bb46-424e789ec079" -H "X-Idempotency-Key: key-23" -d "{\"title\": \"forth thread\",\"content\": \"golange\",\"tags\": [\"go\", \"gin\", \"http\"]}" http://localhost:8080/api/v1/threads
+curl -X POST -H "Content-Type: application/json" -H "X-User-Id: 70b535b7-c9ee-4fc1-a0e2-7a97cdd5c459" -H "X-Idempotency-Key: key-123" -d "{\"title\": \"first thread\",\"content\": \"hello world\",\"tags\": [\"go\", \"test\", \"sql\"]}" http://localhost:8080/api/v1/threads
+curl -X POST -H "Content-Type: application/json" -H "X-User-Id: e0a6aa57-1d22-4614-999a-1b63da3a48a0" -H "X-Idempotency-Key: key-12" -d "{\"title\": \"second thread\",\"content\": \" world\",\"tags\": [\"pythone\", \"test\"]}" http://localhost:8080/api/v1/threads
+curl -X POST -H "Content-Type: application/json" -H "X-User-Id: b8910dc8-ce3b-4e07-9362-1894f0943d3b" -H "X-Idempotency-Key: key-13" -d "{\"title\": \"third thread\",\"content\": \"hello \",\"tags\": [\"go\", \"test\"]}" http://localhost:8080/api/v1/threads
+curl -X POST -H "Content-Type: application/json" -H "X-User-Id: b8910dc8-ce3b-4e07-9362-1894f0943d3b" -H "X-Idempotency-Key: key-23" -d "{\"title\": \"forth thread\",\"content\": \"golange\",\"tags\": [\"go\", \"gin\", \"http\"]}" http://localhost:8080/api/v1/threads
 
-curl http://localhost:8080/api/v1/threads?limit=10&offset=0
+curl "http://localhost:8080/api/v1/threads?limit=10&offset=0"
 
-curl -X POST -H "X-User-Id: f0bf9cc8-f021-4706-8615-432187eeaf4a" -H "Content-Type: application/json" -d "{\"content\":\"Hello from comment\"}" http://localhost:8080/api/v1/threads/1/posts
+curl -X POST -H "X-User-Id: b8910dc8-ce3b-4e07-9362-1894f0943d3b" -H "Content-Type: application/json" -d "{\"content\":\"Hello from comment\"}" http://localhost:8080/api/v1/threads/1/posts
+
+curl -X DELETE -H "X-User-Id: b8910dc8-ce3b-4e07-9362-1894f0943d3b" http://localhost:8080/api/v1/threads/5
+
+curl -X PATCH -H "X-User-Id: 70b535b7-c9ee-4fc1-a0e2-7a97cdd5c459" -H "Content-Type: application/json" -d "{\"title\":\"new title\"}" http://localhost:8080/api/v1/threads/1
+curl -X PATCH -H "X-User-Id: 70b535b7-c9ee-4fc1-a0e2-7a97cdd5c459" -H "Content-Type: application/json" -d "{\"is_locked\":true}" http://localhost:8080/api/v1/threads/1/lock
+
+curl -X PATCH -H "X-User-Id: 70b535b7-c9ee-4fc1-a0e2-7a97cdd5c459" -H "Content-Type: application/json" -d "{\"content\":\"new content\"}" http://localhost:8080/api/v1/posts/1
+curl -X DELETE -H "X-User-Id: 70b535b7-c9ee-4fc1-a0e2-7a97cdd5c459" http://localhost:8080/api/v1/posts/1

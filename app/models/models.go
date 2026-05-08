@@ -25,7 +25,7 @@ type Thread struct {
 	Content  string   `json:"content"`
 	Tags     []string `json:"tags"`
 
-	IsLocked  bool
+	IsLocked  bool       `json:"is_locked"`
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 }
@@ -35,6 +35,7 @@ type Parameters struct {
 	Offset int
 	Tag    string
 	Author string
+	Sort   string
 }
 
 type Contents struct {

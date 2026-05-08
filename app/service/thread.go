@@ -104,43 +104,43 @@ func GetThreads(param models.Parameters) ([]models.Thread, int, error) {
 
 	threads := make([]models.Thread, 0)
 	if param.Author == "" && param.Tag == "" {
-		rows, err := conn.Query(ctx,
-			`SELECT * FROM threads 
-		LIMIT $1 OFFSET $2`, param.Limit, param.Offset)
+		query := `SELECT threads.id,
+			threads.author_id,
+			threads.title,
+			threads.content,
+			threads.is_locked,
+			threads.created_at,
+			threads.updated_at,
+			array_agg(thread_tags.tag) as tags
+			FROM threads LEFT JOIN thread_tags ON threads.id = thread_tags.thread_id
+			GROUP BY threads.id 
+			ORDER BY created_at `
+		if param.Sort == "old" {
+			query += "ASC LIMIT $1 OFFSET $2"
+		} else {
+			query += "DESC LIMIT $1 OFFSET $2"
+		}
+
+		rows, err := conn.Query(ctx, query, param.Limit, param.Offset)
 		if err != nil {
 			return nil, 0, err
 		}
-		defer rows.Close()
 
 		for rows.Next() {
-			var thread models.Thread
-
-			rows.Scan(&thread.Id, &thread.AuthorID, &thread.Title, &thread.Content,
-				&thread.IsLocked, &thread.CreatedAt, &thread.UpdatedAt)
-
-			tagsRow, err := conn.Query(ctx, `SELECT tag FROM thread_tags WHERE thread_id = $1`, thread.Id)
-			if err != nil {
-				return nil, 0, err
-			}
-
 			tags := make([]string, 0)
-			for tagsRow.Next() {
-				var tag string
-				if err := tagsRow.Scan(&tag); err != nil {
-					return nil, 0, err
-				}
-				tags = append(tags, tag)
+			var thread models.Thread
+			if err := rows.Scan(&thread.Id, &thread.AuthorID, &thread.Title, &thread.Content, &thread.IsLocked, &thread.CreatedAt, &thread.UpdatedAt, &tags); err != nil {
+				return nil, 0, err
 			}
 			thread.Tags = tags
 			threads = append(threads, thread)
-			tagsRow.Close()
 		}
 
 		return threads, total, nil
 	}
 
 	if param.Author != "" {
-		rows, err := conn.Query(ctx, `SELECT
+		query := `SELECT
 			threads.id,
 			threads.author_id,
 			threads.title,
@@ -155,7 +155,13 @@ func GetThreads(param models.Parameters) ([]models.Thread, int, error) {
 		WHERE threads.author_id = $1
 		GROUP BY
 			threads.id
-		LIMIT $2 OFFSET $3;`, param.Author, param.Limit, param.Offset)
+		ORDER BY created_at `
+		if param.Sort == "old" {
+			query += "ASC LIMIT $2 OFFSET $3"
+		} else {
+			query += "DESC LIMIT $2 OFFSET $3"
+		}
+		rows, err := conn.Query(ctx, query, param.Author, param.Limit, param.Offset)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -175,7 +181,7 @@ func GetThreads(param models.Parameters) ([]models.Thread, int, error) {
 	}
 
 	if param.Tag != "" {
-		rows, err := conn.Query(ctx, `SELECT
+		query := `SELECT
 			threads.id,
 			threads.author_id,
 			threads.title,
@@ -187,10 +193,16 @@ func GetThreads(param models.Parameters) ([]models.Thread, int, error) {
 		FROM threads
 		LEFT JOIN thread_tags
 		ON threads.id = thread_tags.thread_id
-		WHERE thread_tags.tag = $1 
+		WHERE thread_tags.tag = $1
 		GROUP BY
 			threads.id
-		LIMIT $2 OFFSET $3;`, param.Tag, param.Limit, param.Offset)
+		ORDER BY created_at `
+		if param.Sort == "old" {
+			query += "ASC LIMIT $2 OFFSET $3"
+		} else {
+			query += "DESC LIMIT $2 OFFSET $3"
+		}
+		rows, err := conn.Query(ctx, query, param.Tag, param.Limit, param.Offset)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -217,6 +229,7 @@ func GetThreadById(id int) (models.Thread, error) {
 	if err != nil {
 		return models.Thread{}, fmt.Errorf("Connection error %s", err)
 	}
+	defer conn.Close()
 
 	tags := make([]string, 0)
 	var thread models.Thread
@@ -236,4 +249,136 @@ func GetThreadById(id int) (models.Thread, error) {
 	}
 
 	return thread, nil
+}
+
+func DeleteThread(userID string, id int) error {
+	ctx := context.Background()
+	conn, err := pgxpool.New(ctx, models.PostgresqlConnString)
+	if err != nil {
+		return fmt.Errorf("Connection error %s", err)
+	}
+	defer conn.Close()
+
+	var threadOwner string
+	if err := conn.QueryRow(ctx, `SELECT author_id FROM threads WHERE id = $1`, id).Scan(&threadOwner); err != nil {
+		return err
+	}
+	if threadOwner != userID {
+		return fmt.Errorf("This user can not delete this thread")
+	}
+
+	if _, err := conn.Exec(ctx, `DELETE FROM threads WHERE id = $1`, id); err != nil {
+		return err
+	}
+	if _, err := conn.Exec(ctx, `DELETE FROM idempotency_keys WHERE user_id = $1 AND response_body -> 'Id' = $2`, userID, id); err != nil {
+		return err
+	}
+	return nil
+}
+
+func UpdateThread(newThread models.Thread, userID string, id int) (models.Thread, error) {
+	ctx := context.Background()
+	conn, err := pgxpool.New(ctx, models.PostgresqlConnString)
+	if err != nil {
+		return models.Thread{}, fmt.Errorf("Connection error %s", err)
+	}
+	defer conn.Close()
+
+	var threadOwner string
+	var isLocked bool
+	var oldTitle string
+	var oldContent string
+	if err := conn.QueryRow(ctx, `SELECT author_id, is_locked, title, content FROM threads WHERE id = $1`, id).Scan(&threadOwner, &isLocked, &oldTitle, &oldContent); err != nil {
+		return models.Thread{}, err
+	}
+
+	if threadOwner != userID || isLocked {
+		return models.Thread{}, fmt.Errorf("Wrong user or thread is locked")
+	}
+
+	if newThread.Content == "" {
+		newThread.Content = oldContent
+	}
+	if newThread.Title == "" {
+		newThread.Title = oldTitle
+	}
+
+	newThread.Id = id
+	if err := conn.QueryRow(ctx, `UPDATE threads SET
+		title = $1,
+		content = $2,
+		updated_at = NOW()
+		WHERE id = $3
+		RETURNING updated_at`, newThread.Title, newThread.Content, id).Scan(&newThread.UpdatedAt); err != nil {
+		return models.Thread{}, err
+	}
+
+	return newThread, nil
+}
+
+func LockThread(lock bool, userID string, id int) error {
+	ctx := context.Background()
+	conn, err := pgxpool.New(ctx, models.PostgresqlConnString)
+	if err != nil {
+		return fmt.Errorf("Connection error %s", err)
+	}
+	defer conn.Close()
+
+	var threadOwner string
+
+	if err := conn.QueryRow(ctx, `SELECT author_id FROM threads WHERE id = $1`, id).Scan(&threadOwner); err != nil {
+		return err
+	}
+
+	if threadOwner != userID {
+		return fmt.Errorf("Wrong user")
+	}
+	if _, err := conn.Exec(ctx, `UPDATE threads SET
+	is_locked = $1 WHERE id = $2`, lock, id); err != nil {
+		return err
+	}
+	return nil
+}
+
+func GetSortThreads(sort string) ([]models.Thread, error) {
+	ctx := context.Background()
+	conn, err := pgxpool.New(ctx, models.PostgresqlConnString)
+	if err != nil {
+		return nil, fmt.Errorf("Connection error %s", err)
+	}
+	defer conn.Close()
+
+	threads := make([]models.Thread, 0)
+	query := `SELECT threads.id,
+			threads.author_id,
+			threads.title,
+			threads.content,
+			threads.is_locked,
+			threads.created_at,
+			threads.updated_at,
+			array_agg(thread_tags.tag) as tags
+			FROM threads LEFT JOIN thread_tags ON threads.id = thread_tags.thread_id
+			GROUP BY threads.id 
+			ORDER BY created_at `
+	if sort == "old" {
+		query += "ASC"
+	} else {
+		query += "DESC"
+	}
+
+	rows, err := conn.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		tags := make([]string, 0)
+		var thread models.Thread
+		if err := rows.Scan(&thread.Id, &thread.AuthorID, &thread.Title, &thread.Content, &thread.IsLocked, &thread.CreatedAt, &thread.UpdatedAt, &tags); err != nil {
+			return nil, err
+		}
+		thread.Tags = tags
+		threads = append(threads, thread)
+	}
+	return threads, nil
 }

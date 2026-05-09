@@ -382,3 +382,46 @@ func GetSortThreads(sort string) ([]models.Thread, error) {
 	}
 	return threads, nil
 }
+
+func PutNewThread(userID string, id int, newThread models.Thread) (models.Thread, error) {
+	ctx := context.Background()
+	conn, err := pgxpool.New(ctx, models.PostgresqlConnString)
+	if err != nil {
+		return models.Thread{}, fmt.Errorf("Connection error %s", err)
+	}
+	defer conn.Close()
+
+	var threadOwner string
+
+	if err := conn.QueryRow(ctx, `SELECT author_id FROM threads WHERE id = $1`, id).Scan(&threadOwner); err != nil {
+		return models.Thread{}, err
+	}
+
+	if threadOwner != userID {
+		return models.Thread{}, fmt.Errorf("Wrong user")
+	}
+
+	err = conn.QueryRow(ctx, `UPDATE threads SET
+		title = $1,
+		content = $2,
+		is_locked = $3,
+		updated_at = NOW()
+		WHERE id = $4
+		RETURNING created_at, updated_at`, newThread.Title, newThread.Content, newThread.IsLocked, id).Scan(&newThread.CreatedAt, &newThread.UpdatedAt)
+	if err != nil {
+		return models.Thread{}, fmt.Errorf("insert error: %s", err)
+	}
+
+	if _, err := conn.Exec(ctx, `DELETE FROM thread_tags WHERE thread_id = $1`, id); err != nil {
+		return models.Thread{}, err
+	}
+
+	for _, tag := range newThread.Tags {
+		_, err = conn.Exec(ctx, `INSERT INTO thread_tags (thread_id, tag) VALUES ($1, $2)`, id, tag)
+		if err != nil {
+			return models.Thread{}, err
+		}
+	}
+
+	return newThread, nil
+}

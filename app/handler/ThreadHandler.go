@@ -83,7 +83,7 @@ func ShowThreads(c *gin.Context) {
 
 	threads, total, err := service.GetThreads(param)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    http.StatusInternalServerError,
 			"message": err.Error(),
 		})
@@ -112,7 +112,7 @@ func GetThread(c *gin.Context) {
 
 	thread, err := service.GetThreadById(id)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    http.StatusInternalServerError,
 			"message": err.Error(),
 		})
@@ -141,7 +141,7 @@ func DeleteThread(c *gin.Context) {
 	}
 
 	if err := service.DeleteThread(userID, id); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    http.StatusInternalServerError,
 			"message": err.Error(),
 		})
@@ -179,7 +179,7 @@ func PatchThread(c *gin.Context) {
 	}
 	thread, err := service.UpdateThread(newThread, userID, id)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    http.StatusInternalServerError,
 			"message": err.Error(),
 		})
@@ -221,7 +221,7 @@ func LockThread(c *gin.Context) {
 	}
 
 	if err := service.LockThread(LockThread.IsLocked, userID, id); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    http.StatusInternalServerError,
 			"message": err.Error(),
 		})
@@ -239,7 +239,7 @@ func SortThreads(c *gin.Context) {
 
 	threds, err := service.GetSortThreads(sort)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    http.StatusInternalServerError,
 			"message": err.Error(),
 		})
@@ -248,4 +248,46 @@ func SortThreads(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"Threads": threds,
 	})
+}
+
+func PutThread(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    http.StatusBadRequest,
+			"message": "Wrong id",
+		})
+		return
+	}
+	userID := c.GetHeader("X-User-Id")
+	if userID == "" {
+		c.JSON(401, gin.H{
+			"code":    "unauthorized",
+			"message": "missing user id",
+		})
+		return
+	}
+
+	var newThread models.Thread
+	if err := c.BindJSON(&newThread); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    http.StatusBadRequest,
+			"message": "Wrong JSON",
+		})
+		return
+	}
+
+	thread, err := service.PutNewThread(userID, id, newThread)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    http.StatusInternalServerError,
+			"message": err.Error(),
+		})
+		return
+	}
+
+	thread.AuthorID = userID
+	thread.Id = id
+
+	c.JSON(http.StatusOK, thread)
 }

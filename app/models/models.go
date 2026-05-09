@@ -51,3 +51,13 @@ type Post struct {
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 }
+
+type Attachments struct {
+	Id        string
+	ThreadId  int
+	Filename  string
+	MimeType  string
+	Size      int
+	Path      string `json:"-"`
+	CreatedAt time.Time
+}

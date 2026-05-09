@@ -8,5 +8,6 @@ services:
     container_name: 'postgresql-container'
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql # начальная схема БД
+      - ./data:/var/lib/postgresql/18/docker
     ports:
       - 5433:5432

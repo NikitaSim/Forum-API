@@ -79,7 +79,7 @@ func GetPosts(c *gin.Context) {
 
 	posts, total, err := service.GetPosts(id, param)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    http.StatusInternalServerError,
 			"message": err.Error(),
 		})
@@ -115,7 +115,7 @@ func DeletePost(c *gin.Context) {
 	}
 
 	if err := service.DeletePost(userID, id); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    http.StatusInternalServerError,
 			"message": err.Error(),
 		})
@@ -153,7 +153,7 @@ func PatchPost(c *gin.Context) {
 
 	update, err := service.UpdatePost(userID, id, cont.Content)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    http.StatusInternalServerError,
 			"message": err.Error(),
 		})

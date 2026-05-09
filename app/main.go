@@ -40,6 +40,10 @@ func main() {
 	router.PATCH("/api/v1/threads/:id", handler.PatchThread)
 	router.DELETE("/api/v1/posts/:id", handler.DeletePost)
 	router.PATCH("/api/v1/posts/:id", handler.PatchPost)
+	router.PUT("/api/v1/threads/:id", handler.PutThread)
+	router.POST("/api/v1/threads/:id/attachments", handler.UploadAttachment)
+	router.GET("/api/v1/threads/:id/attachments", handler.ShowAttachments)
+	router.GET("/api/v1/attachments/:id", handler.DownloadAttachment)
 
 	server := &http.Server{
 		Addr:         ":8080",

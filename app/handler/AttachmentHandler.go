@@ -98,5 +98,25 @@ func DownloadAttachment(c *gin.Context) {
 	}
 
 	c.FileAttachment(filePath, fileName)
+}
 
+func DeleteAttachment(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    http.StatusBadRequest,
+			"message": "No id",
+		})
+		return
+	}
+
+	if err := service.DeleteFile(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    http.StatusInternalServerError,
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusNoContent, "No Content")
 }

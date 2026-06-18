@@ -43,7 +43,8 @@ func main() {
 	router.PUT("/api/v1/threads/:id", handler.PutThread)
 	router.POST("/api/v1/threads/:id/attachments", handler.UploadAttachment)
 	router.GET("/api/v1/threads/:id/attachments", handler.ShowAttachments)
-	router.GET("/api/v1/attachments/:id", handler.DownloadAttachment)
+	router.GET("/api/v1/attachments/:id/file", handler.DownloadAttachment)
+	router.DELETE("/api/v1/attachments/:id", handler.DeleteAttachment)
 
 	server := &http.Server{
 		Addr:         ":8080",

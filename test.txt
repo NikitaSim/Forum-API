@@ -26,3 +26,6 @@ C:\course\filepath_test\testdata\project\gopher.png
 curl -X POST -H "X-User-Id: 5d8e2033-962e-4702-b449-d4a8da11a240" -F "file=@C:\course\filepath_test\testdata\project\gopher.png" http://localhost:8080/api/v1/threads/2/attachments
 
 curl "http://localhost:8080/api/v1/threads/2/attachments"
+
+curl -OJ "http://localhost:8080/api/v1/attachments/UUID"
+curl -X DELETE "http://localhost:8080/api/v1/attachments/UUID"

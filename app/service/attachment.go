@@ -66,3 +66,18 @@ func GetFile(fileID string) (string, string, error) {
 	}
 	return path, name, nil
 }
+
+func DeleteFile(fileID string) error {
+	ctx := context.Background()
+	conn, err := pgxpool.New(ctx, models.PostgresqlConnString)
+	if err != nil {
+		return fmt.Errorf("Connection error %s", err)
+	}
+	defer conn.Close()
+
+	if _, err := conn.Exec(ctx, `DELETE FROM attachments WHERE id = $1`, fileID); err != nil {
+		return err
+	}
+
+	return nil
+}
